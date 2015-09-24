@@ -1,17 +1,38 @@
 import java.io.FileInputStream;
 import java.io.IOException;
-
 import java.io.InputStream;
-
+import java.sql.Connection;
 import java.sql.DriverManager;
-
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
+
 public class LectureBD {   
+	
+	
+	/* info pour le lab: 
+	*
+	*hostname : big-data-3.logti.etsmtl.ca
+	*port : 1521
+	*SID : LOG660
+	*
+	*User Passe : "equipe5","XCZDRZlk"
+	 *
+	 */
+	
+	//constante pour la connexion BD
+	public static final String CONNECTION_BD ="";
+	public static final String PILOTE_JDBC ="";
+	Connection uneConnection;
+	
+	
    public class Role {
       public Role(int i, String n, String p) {
          id = i;
@@ -23,7 +44,7 @@ public class LectureBD {
       protected String personnage;
    }
    
-   public LectureBD() {
+   public LectureBD() throws ClassNotFoundException, SQLException {
       connectionBD();                     
    }
    
@@ -71,6 +92,7 @@ public class LectureBD {
                   lieu = null;
                   photo = null;
                   bio = null;
+ 
                   
                }
             }
@@ -89,14 +111,19 @@ public class LectureBD {
                   else if (tag.equals("bio"))
                      bio = parser.getText();
                   //test afficher les noms
-                  count = count+1;
-                  System.out.println("nom: "+ nom + " anniversaire: "+anniversaire+ " lieu "+ lieu + " nombre: " +count) ;
                   
-               
+                /*  if (nom != null){
+                      count = count+1;
+                      System.out.println("nom: "+ nom + " anniversaire: "+anniversaire+ " lieu "+ lieu + " nombre: " +count) ;
+                   }
+               */
                }              
             }
+          
             
             eventType = parser.next();            
+        
+         
          }
       }
       catch (XmlPullParserException e) {
@@ -105,6 +132,8 @@ public class LectureBD {
        catch (IOException e) {
          System.out.println("IOException while parsing " + nomFichier); 
        }
+      
+      
    }   
    
    public void lectureFilms(String nomFichier){
@@ -233,7 +262,7 @@ public class LectureBD {
       }
    }
    
-   public void lectureClients(String nomFichier){
+   public void lectureClients(String nomFichier) throws SQLException{
       try {
          XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
          XmlPullParser parser = factory.newPullParser();
@@ -351,6 +380,9 @@ public class LectureBD {
    
    private void insertionPersonne(int id, String nom, String anniv, String lieu, String photo, String bio) {      
       // On insere la personne dans la BD
+	   
+	   
+	   
    }
    
    private void insertionFilm(int id, String titre, int annee,
@@ -360,22 +392,132 @@ public class LectureBD {
                            ArrayList<Role> roles, String poster,
                            ArrayList<String> annonces) {         
       // On le film dans la BD
+	   
+	   
    }
    
+  // int count = 1;
    private void insertionClient(int id, String nomFamille, String prenom,
                              String courriel, String tel, String anniv,
                              String adresse, String ville, String province,
                              String codePostal, String carte, String noCarte,
                              int expMois, int expAnnee, String motDePasse,
-                             String forfait) {
+                             String forfait) throws SQLException {
       // On le client dans la BD
-   }
+	   
+	   int idPersonne = 0;
+	   int idUtilisateur = 0;
+	   int idAdresse = 0;
+	   int idLieu = 0;
+	   int idPays = 1;
+	   int idClient = 1;
+	   
+	   String noCivique = "";
+	   String rue = "";
+	   ResultSet rs;
+	   String espace = " ";
+	   String[] tokens = adresse.split(espace);
+	   noCivique = tokens[0];
+	   for (int i=1; i<tokens.length; i++){
+	   rue = rue +" "+ tokens[i];
+	   }
+	  // System.out.println("id : "+ id +"conteur : " + count++ );
+	   if(uneConnection == null){
+		   System.out.println("il n'y a pas de connection");
+	   }else{
+		   
+		   //insertion dans la table personne, retour de idPersonne
+		   PreparedStatement insertionPersonne = 
+				   uneConnection.prepareStatement("INSERT INTO Personne("
+				   		+ "motDePasse, courriel, noTelephone, ) VALUES((?,?,?)", new String[]{"idPersonne"} );
+		   insertionPersonne.setString(1, nomFamille);
+		   insertionPersonne.setString(2, prenom);
+		   insertionPersonne.setString(3, anniv);
+		   insertionPersonne.executeUpdate();
+		   rs = insertionPersonne.getGeneratedKeys();
+		   if(rs.next()){
+			   idPersonne = rs.getInt(1);
+		   }
+		   
+		   //insertion dans la table Lieu, retour de idLieu
+		   PreparedStatement insertionLieu = 
+				   uneConnection.prepareStatement("INSERT INTO Lieu(ville, province, idPays) VALUES((?,?,?)", new String[]{"idUtilisateur"} );
+		   insertionLieu.setString(1, ville);
+		   insertionLieu.setString(2, province);
+		   insertionLieu.setInt(3, 1);
+		   insertionLieu.executeUpdate();
+		   rs = insertionLieu.getGeneratedKeys();
+		   if(rs.next()){
+			   idLieu= rs.getInt(1);
+		   }
+			   //insertion dans la table adresse, retour de idAdresse
+		   PreparedStatement insertionAdresse = 
+				   uneConnection.prepareStatement("INSERT INTO Adresse(noCivique, rue, codePostal, idLieu) VALUES((?,?,?,?)", new String[]{"idUtilisateur"} );
+		   insertionAdresse.setString(1, noCivique);
+		   insertionAdresse.setString(2, rue);
+		   insertionAdresse.setString(3, codePostal);
+		   insertionAdresse.setInt(4, idLieu);
+		   insertionAdresse.executeUpdate();
+		   rs = insertionAdresse.getGeneratedKeys();
+		   if(rs.next()){
+			   idAdresse= rs.getInt(1);
+
+		   }
+		   
+		    // insertion dans la table Utilisateur, retour idUtilisateur
+		   PreparedStatement insertionUtilisateur = 
+				   uneConnection.prepareStatement("INSERT INTO Utilisateur(idPersonne, motDePasse, courriel, tel, idAdresse) VALUES((?,?,?,?,?)", new String[]{"idUtilisateur"} );
+		   insertionUtilisateur.setInt(1, idPersonne);
+		   insertionUtilisateur.setString(2, motDePasse);
+		   insertionUtilisateur.setString(3, courriel);
+		   insertionUtilisateur.setString(4, tel);
+		   insertionUtilisateur.setInt(5, idAdresse);
+		   insertionUtilisateur.executeUpdate();
+		   rs = insertionUtilisateur.getGeneratedKeys();
+		   if(rs.next()){
+			   idUtilisateur = rs.getInt(1);
+		   }
+		   
+		// insertion dans la table Carte de credit
+		   PreparedStatement insertionCarteCredit = 
+				   uneConnection.prepareStatement("INSERT INTO CarteCredit(noCarte,idClient, type, expMois, expAnnee) VALUES((?,?,?,?,?)", new String[]{"idUtilisateur"} );
+		   insertionCarteCredit.setString(1, noCarte);
+		   insertionCarteCredit.setInt(2, idClient);
+		   insertionCarteCredit.setString(3, carte);
+		   insertionCarteCredit.setInt(4, expMois);
+		   insertionCarteCredit.setInt(5, expAnnee);
+		   insertionCarteCredit.executeUpdate();
+		   
+		   }
+	// insertion dans la table Client
+	   PreparedStatement insertionClient = 
+			   uneConnection.prepareStatement("INSERT INTO Client(idUtilisateur, idForfait) VALUES((?,?)", new String[]{"idUtilisateur"} );
+	   insertionClient.setInt(1, idUtilisateur);
+	   insertionClient.setString(2, forfait);
+	  
+	   insertionClient.executeUpdate();
+	 
+	   rs = insertionClient.getGeneratedKeys();
+	   if(rs.next()){
+		   idClient = rs.getInt(1);
+	   }
+	   }
    
-   private void connectionBD() {
+   
+   private void connectionBD() throws ClassNotFoundException, SQLException {
       // On se connecte a la BD
+	  
+	   // charger le pilote JDBC
+		Class.forName(PILOTE_JDBC);
+		
+		//connection a la BD
+		uneConnection = DriverManager.getConnection(CONNECTION_BD);
+	
+
+	   
    }
 
-   public static void main(String[] args) {
+   public static void main(String[] args) throws ClassNotFoundException, SQLException {
       LectureBD lecture = new LectureBD();
       
       lecture.lecturePersonnes(args[0]);
