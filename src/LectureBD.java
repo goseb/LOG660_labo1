@@ -31,7 +31,7 @@ public class LectureBD {
 	public static final String CONNECTION_BD ="";
 	public static final String PILOTE_JDBC ="";
 	Connection uneConnection;
-	
+	int count = 1;
 	
    public class Role {
       public Role(int i, String n, String p) {
@@ -42,6 +42,10 @@ public class LectureBD {
       protected int id;
       protected String nom;
       protected String personnage;
+      
+      public int getRoleId(){
+    	  return id;
+      }
    }
    
    public LectureBD() throws ClassNotFoundException, SQLException {
@@ -136,7 +140,7 @@ public class LectureBD {
       
    }   
    
-   public void lectureFilms(String nomFichier){
+   public void lectureFilms(String nomFichier) throws SQLException{
       try {
          XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
          XmlPullParser parser = factory.newPullParser();
@@ -390,13 +394,73 @@ public class LectureBD {
                            ArrayList<String> genres, String realisateurNom, int realisateurId,
                            ArrayList<String> scenaristes,
                            ArrayList<Role> roles, String poster,
-                           ArrayList<String> annonces) {         
+                           ArrayList<String> annonces) throws SQLException {         
       // On le film dans la BD
 	   
+	
+	   for (int i =0; i<roles.size();i++){
+	   System.out.println("role : "+ roles.get(i).getRoleId() +"compteur : " + count++ );
+	   }
+	   ResultSet rs;
+	   int idFilm = 0;
+	   if(uneConnection == null){
+		   System.out.println("il n'y a pas de connection");
+	   }else{
+	   
+	   //insertion dans la table personne, retour de idPersonne
+	   PreparedStatement insertionFilm = 
+			   uneConnection.prepareStatement("INSERT INTO Film("
+			   		+ "titre, anneeSortie, duree, resumeScenario) VALUES((?,?,?,?)", new String[]{"idFilm"} );
+	   insertionFilm.setString(1, titre);
+	   insertionFilm.setInt(2, annee);
+	   insertionFilm.setInt(3, duree);
+	   insertionFilm.setString(4, resume);
+	   insertionFilm.executeUpdate();
+	   rs = insertionFilm.getGeneratedKeys();
+	   if(rs.next()){
+		   idFilm = rs.getInt(1);
+	   }
+	   
+	   //*************A implementer: créer la table Genre pour référence 
+	   //insertion dans la table personne, retour de idPersonne
+	   //changer le ID genre devrait devenir un type... action, aventure etc
+	   
+	   for(int i=0; i<genres.size();i++){
+	   PreparedStatement insertionGenreFilm = 
+			   uneConnection.prepareStatement("INSERT INTO GenreFilm("
+			   		+ "idFilm, idGenre) VALUES((?,?)" );
+	   insertionGenreFilm.setInt(1, idFilm);
+	   insertionGenreFilm.setString(2, genres.get(i));
+	  
+	   insertionGenreFilm.executeUpdate();
+	   }
+	   
+	   for(int i=0; i<pays.size();i++){
+		   PreparedStatement insertionPaysFilm = 
+				   uneConnection.prepareStatement("INSERT INTO PaysFilm("
+				   		+ "idFilm, idPays) VALUES((?,?)" );
+		   insertionPaysFilm.setInt(1, idFilm);
+		   insertionPaysFilm.setString(2, pays.get(i));
+		  
+		   insertionPaysFilm.executeUpdate();
+		   }
+	   
+	   for(int i=0; i<scenaristes.size();i++){
+		   PreparedStatement insertionScenaristeFilm = 
+				   uneConnection.prepareStatement("INSERT INTO ScenaristeFilm("
+				   		+ "idFilm, nom ) VALUES((?,?)" );
+		   insertionScenaristeFilm.setInt(1, idFilm);
+		   insertionScenaristeFilm.setString(2, scenaristes.get(i));
+		  
+		   insertionScenaristeFilm.executeUpdate();
+		   }
+	   
+	   
+	   }
 	   
    }
    
-  // int count = 1;
+  
    private void insertionClient(int id, String nomFamille, String prenom,
                              String courriel, String tel, String anniv,
                              String adresse, String ville, String province,
@@ -429,7 +493,7 @@ public class LectureBD {
 		   //insertion dans la table personne, retour de idPersonne
 		   PreparedStatement insertionPersonne = 
 				   uneConnection.prepareStatement("INSERT INTO Personne("
-				   		+ "motDePasse, courriel, noTelephone, ) VALUES((?,?,?)", new String[]{"idPersonne"} );
+				   		+ "nom, prenom,dateNaissance) VALUES((?,?,?)", new String[]{"idPersonne"} );
 		   insertionPersonne.setString(1, nomFamille);
 		   insertionPersonne.setString(2, prenom);
 		   insertionPersonne.setString(3, anniv);
@@ -441,10 +505,10 @@ public class LectureBD {
 		   
 		   //insertion dans la table Lieu, retour de idLieu
 		   PreparedStatement insertionLieu = 
-				   uneConnection.prepareStatement("INSERT INTO Lieu(ville, province, idPays) VALUES((?,?,?)", new String[]{"idUtilisateur"} );
+				   uneConnection.prepareStatement("INSERT INTO Lieu(ville, province, idPays) VALUES((?,?,?)", new String[]{"idLieu"} );
 		   insertionLieu.setString(1, ville);
 		   insertionLieu.setString(2, province);
-		   insertionLieu.setInt(3, 1);
+		   insertionLieu.setInt(3, idPays);
 		   insertionLieu.executeUpdate();
 		   rs = insertionLieu.getGeneratedKeys();
 		   if(rs.next()){
@@ -452,7 +516,7 @@ public class LectureBD {
 		   }
 			   //insertion dans la table adresse, retour de idAdresse
 		   PreparedStatement insertionAdresse = 
-				   uneConnection.prepareStatement("INSERT INTO Adresse(noCivique, rue, codePostal, idLieu) VALUES((?,?,?,?)", new String[]{"idUtilisateur"} );
+				   uneConnection.prepareStatement("INSERT INTO Adresse(noCivique, rue, codePostal, idLieu) VALUES((?,?,?,?)", new String[]{"idAdresse"} );
 		   insertionAdresse.setString(1, noCivique);
 		   insertionAdresse.setString(2, rue);
 		   insertionAdresse.setString(3, codePostal);
@@ -466,7 +530,7 @@ public class LectureBD {
 		   
 		    // insertion dans la table Utilisateur, retour idUtilisateur
 		   PreparedStatement insertionUtilisateur = 
-				   uneConnection.prepareStatement("INSERT INTO Utilisateur(idPersonne, motDePasse, courriel, tel, idAdresse) VALUES((?,?,?,?,?)", new String[]{"idUtilisateur"} );
+				   uneConnection.prepareStatement("INSERT INTO Utilisateur(idPersonne, motDePasse, courriel, noTelephone, idAdresse) VALUES((?,?,?,?,?)", new String[]{"idUtilisateur"} );
 		   insertionUtilisateur.setInt(1, idPersonne);
 		   insertionUtilisateur.setString(2, motDePasse);
 		   insertionUtilisateur.setString(3, courriel);
@@ -480,7 +544,7 @@ public class LectureBD {
 		   
 		// insertion dans la table Carte de credit
 		   PreparedStatement insertionCarteCredit = 
-				   uneConnection.prepareStatement("INSERT INTO CarteCredit(noCarte,idClient, type, expMois, expAnnee) VALUES((?,?,?,?,?)", new String[]{"idUtilisateur"} );
+				   uneConnection.prepareStatement("INSERT INTO CarteCredit(numero,idClient, type, moisExpiration, anneeExpiration) VALUES((?,?,?,?,?)" );
 		   insertionCarteCredit.setString(1, noCarte);
 		   insertionCarteCredit.setInt(2, idClient);
 		   insertionCarteCredit.setString(3, carte);
@@ -491,7 +555,7 @@ public class LectureBD {
 		   }
 	// insertion dans la table Client
 	   PreparedStatement insertionClient = 
-			   uneConnection.prepareStatement("INSERT INTO Client(idUtilisateur, idForfait) VALUES((?,?)", new String[]{"idUtilisateur"} );
+			   uneConnection.prepareStatement("INSERT INTO Client(idUtilisateur, idForfait) VALUES((?,?)", new String[]{"idClient"} );
 	   insertionClient.setInt(1, idUtilisateur);
 	   insertionClient.setString(2, forfait);
 	  
@@ -501,17 +565,17 @@ public class LectureBD {
 	   if(rs.next()){
 		   idClient = rs.getInt(1);
 	   }
-	   }
+}
    
    
    private void connectionBD() throws ClassNotFoundException, SQLException {
       // On se connecte a la BD
 	  
 	   // charger le pilote JDBC
-		Class.forName(PILOTE_JDBC);
+//		Class.forName(PILOTE_JDBC);
 		
 		//connection a la BD
-		uneConnection = DriverManager.getConnection(CONNECTION_BD);
+//		uneConnection = DriverManager.getConnection(CONNECTION_BD);
 	
 
 	   
@@ -520,8 +584,8 @@ public class LectureBD {
    public static void main(String[] args) throws ClassNotFoundException, SQLException {
       LectureBD lecture = new LectureBD();
       
-      lecture.lecturePersonnes(args[0]);
+    //  lecture.lecturePersonnes(args[0]);
       lecture.lectureFilms(args[1]);
-      lecture.lectureClients(args[2]);
+    //  lecture.lectureClients(args[2]);
    }
 }
