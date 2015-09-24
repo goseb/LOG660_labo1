@@ -53,7 +53,7 @@ public class LectureBD {
    }
    
    
-   public void lecturePersonnes(String nomFichier){   
+   public void lecturePersonnes(String nomFichier) throws SQLException{   
 	   int count = 0;
       try {
          XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
@@ -382,11 +382,75 @@ public class LectureBD {
       }
    }   
    
-   private void insertionPersonne(int id, String nom, String anniv, String lieu, String photo, String bio) {      
+   private void insertionPersonne(int id, String nom, String anniv, String lieu, String photo, String bio) throws SQLException {      
       // On insere la personne dans la BD
 	   
 	   
+	   ResultSet rs;
+	   String ville = "";
+	   String province = "";
+	   String prenom = "";
+	   String pays = "";
+	   int idLieu =0;
+	   int idCelebrite =0;
+	   int idPersonne = 0;
 	   
+	   // System.out.println("id : "+ id +"compteur : " + count++ );
+	   if(uneConnection == null){
+		   System.out.println("il n'y a pas de connection");
+	   }else{
+		   String espace = " ";
+		   String[] tokens = nom.split(espace);
+		   prenom = tokens[0];
+		   for (int i=1; i<tokens.length; i++){
+		   nom = nom + tokens[i]+" ";
+		   }
+		   String virgule= ",";
+		   String[] tokensLieu = lieu.split(virgule);
+		   ville = tokensLieu[0];
+		   province = tokensLieu[1];
+		   pays = tokensLieu[2];
+		   
+		   //insertion dans la table personne, retour de idPersonne
+		   PreparedStatement insertionPersonne = 
+				   uneConnection.prepareStatement("INSERT INTO Personne("
+				   		+ "nom, prenom,dateNaissance) VALUES((?,?,?)", new String[]{"idPersonne"} );
+		   insertionPersonne.setString(1, nom);
+		   insertionPersonne.setString(2, prenom);
+		   insertionPersonne.setString(3, anniv);
+		   insertionPersonne.executeUpdate();
+		   rs = insertionPersonne.getGeneratedKeys();
+		   if(rs.next()){
+			   idPersonne = rs.getInt(1);
+		   }
+		   
+		   
+		   //insertion dans la table Lieu, retour de idLieu
+		   PreparedStatement insertionLieu = 
+				   uneConnection.prepareStatement("INSERT INTO Lieu(ville, province, idPays) VALUES((?,?,?)", new String[]{"idLieu"} );
+		   insertionLieu.setString(1, ville);
+		   insertionLieu.setString(2, province);
+		  // insertionLieu.setString(3, pays);
+		   insertionLieu.executeUpdate();
+		   rs = insertionLieu.getGeneratedKeys();
+		   if(rs.next()){
+			   idLieu= rs.getInt(1);
+		   }
+	   
+		   //insertion dans la table Celebrite, retour de celebrite
+		   PreparedStatement insertionCelebrite = 
+				   uneConnection.prepareStatement("INSERT INTO Personne("
+				   		+ "idPersonne, biographie,idLieu) VALUES((?,?,?)", new String[]{"idPersonne"} );
+		   insertionCelebrite.setInt(1, idPersonne);
+		   insertionCelebrite.setString(2, bio);
+		   insertionCelebrite.setInt(3, idLieu);
+		   insertionCelebrite.executeUpdate();
+		   rs = insertionCelebrite.getGeneratedKeys();
+		   if(rs.next()){
+			   idCelebrite = rs.getInt(1);
+		   }
+		   
+	   }
    }
    
    private void insertionFilm(int id, String titre, int annee,
@@ -397,10 +461,13 @@ public class LectureBD {
                            ArrayList<String> annonces) throws SQLException {         
       // On le film dans la BD
 	   
-	
+		/*
+		 * ***test***
 	   for (int i =0; i<roles.size();i++){
 	   System.out.println("role : "+ roles.get(i).getRoleId() +"compteur : " + count++ );
 	   }
+	   */
+	   
 	   ResultSet rs;
 	   int idFilm = 0;
 	   if(uneConnection == null){
@@ -483,7 +550,7 @@ public class LectureBD {
 	   String[] tokens = adresse.split(espace);
 	   noCivique = tokens[0];
 	   for (int i=1; i<tokens.length; i++){
-	   rue = rue +" "+ tokens[i];
+	   rue = rue +tokens[i]+" ";
 	   }
 	  // System.out.println("id : "+ id +"conteur : " + count++ );
 	   if(uneConnection == null){
