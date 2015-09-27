@@ -41,6 +41,8 @@ public class LectureBD {
 	HashMap<Integer, Integer> personneIds = new HashMap<Integer, Integer>();
 	HashMap<String, Integer> forfaitIds = new HashMap<String, Integer>();
 	HashMap<String, Integer> scenaristeIds = new HashMap<String, Integer>();
+	HashMap<String, Integer> genreIds = new HashMap<String, Integer>();
+	
 	
 	Connection connection;
 	
@@ -59,7 +61,13 @@ public class LectureBD {
       public int getRoleId(){
     	  return id;
       }
+      public String getPersonnage(){
+    		  return personnage;
+      }
+      
+    
    }
+      
    
    public LectureBD() throws ClassNotFoundException, SQLException {
       connectionBD();                     
@@ -546,6 +554,7 @@ public class LectureBD {
 	   int idFilm = 0;
 	   int idPays = 0;
 	   int idScenariste = 0;
+	   int idGenre = 0;
 	   if(connection == null){
 		   System.out.println("il n'y a pas de connection");
 		   }else{
@@ -564,20 +573,32 @@ public class LectureBD {
 				   idFilm = rs.getInt(1);
 			   }
 			   
-			   //*************A implementer: créer la table Genre pour référence 
-			   //insertion dans la table personne, retour de idPersonne
-			   //changer le ID genre devrait devenir un type... action, aventure etc
+			   //verification des genres et insertion genres et genres films
 			   
 			   for(int i=0; i<genres.size();i++){
-			   PreparedStatement insertionGenreFilm = 
-					   connection.prepareStatement("INSERT INTO GenreFilm("
-					   		+ "idFilm, idGenre) VALUES((?,?)" );
-			   insertionGenreFilm.setInt(1, idFilm);
-			   insertionGenreFilm.setString(2, genres.get(i));
-			  
-			   insertionGenreFilm.executeUpdate();
+				   if (genreIds.containsKey(genres.get(i)))
+				  		 idGenre = genreIds.get(genres.get(i));
+				  	 else
+				  	 {
+				    	 PreparedStatement insertionGenre = connection.prepareStatement("INSERT INTO Genre (nom) VALUES (?)", new String[]{"idGenre"});
+				    	 insertionGenre.setString(1, genres.get(i));
+				    	 rs = insertionGenre.getGeneratedKeys();
+				    	 if (rs.next())
+				    	 {
+				    		 idGenre = rs.getInt(1);
+				    		 genreIds.put(genres.get(i), idGenre);
+				    	 }
+				  
+				 
+					   PreparedStatement insertionGenreFilm = 
+							   connection.prepareStatement("INSERT INTO GenreFilm("
+							   		+ "idFilm, idGenre) VALUES((?,?)" );
+					   insertionGenreFilm.setInt(1, idFilm);
+					   insertionGenreFilm.setInt(2, idGenre);
+					  
+					   insertionGenreFilm.executeUpdate();
+					   }
 			   }
-			   
 			   for(int i=0; i<pays.size();i++){
 			  	 if (paysIds.containsKey(pays.get(i)))
 			  		 idPays = paysIds.get(pays.get(i));
@@ -592,6 +613,7 @@ public class LectureBD {
 			    		 paysIds.put(pays.get(i), idPays);
 			    	 }
 			  	 }
+			  	 
 			  	 
 				   PreparedStatement insertionPaysFilm = 
 						   connection.prepareStatement("INSERT INTO PaysFilm("
@@ -613,9 +635,20 @@ public class LectureBD {
 				  	
 				  	 // pour les scenariste nom et prenom sont mis dans nom car il y a des noms composés
 				  		 // avec - et sans ... puis des prénoms composé
-				    	 PreparedStatement insertionScenariste = connection.prepareStatement(
-				    			 "INSERT INTO Scenariste (nom) VALUES (?)", new String[]{"idScenariste"});
-				    	 insertionScenariste.setString(1, pays.get(i));
+				  		String espace = " ";
+				  		String nom = " ";
+				  		String prenom = " ";
+						   String[] tokens = scenaristes.get(i).split(espace);
+						   prenom = tokens[0];
+							   for (int j=1; i<tokens.length; j++){
+							  nom = nom + tokens[j]+" ";
+							   }
+				  		 
+				  		 
+				  		 PreparedStatement insertionScenariste = connection.prepareStatement(
+				    			 "INSERT INTO Scenariste (nom, prenom) VALUES (?,?)", new String[]{"idScenariste"});
+				    	 insertionScenariste.setString(1, nom);
+				    	 insertionScenariste.setString(2, prenom);
 				    	 rs = insertionScenariste.getGeneratedKeys();
 				    	 if (rs.next())
 				    	 {
@@ -633,8 +666,35 @@ public class LectureBD {
 					   insertionScenaristeFilm.executeUpdate();
 				  
 			   }
-		   }
-   }
+			   
+			   //on va chercher idFilm et idPersonne pour les associer dans la table personnage
+			   for(int i=0; i<roles.size();i++){
+				  	
+				  	
+					   PreparedStatement insertionPersonnage = 
+							   connection.prepareStatement("INSERT INTO Personnage("
+							   		+ "idActeur, idFilm, nomPersonnage) VALUES((?,?,?)" );
+					   insertionPersonnage.setInt(1, idFilm);
+					   insertionPersonnage.setInt(2, roles.get(i).getRoleId());
+					   insertionPersonnage.setString(2, roles.get(i).getPersonnage());
+					   insertionPersonnage.executeUpdate();
+				   }
+
+
+			   //on va chercher idFilm et idPersonne pour les associer dans la table RealisateurFilm
+
+					   PreparedStatement insertionRealisateurFilm = 
+							   connection.prepareStatement("INSERT INTO RealisateurFilm("
+							   		+ "idRealisateur, idFilm) VALUES((?,?)" );
+					   insertionRealisateurFilm.setInt(1, realisateurId );
+					   insertionRealisateurFilm.setInt(2, idFilm);
+					  
+					   insertionRealisateurFilm.executeUpdate();
+				   }
+		   
+		   
+		}
+   
    
   
    private void insertionClient(int id, String nomFamille, String prenom,
