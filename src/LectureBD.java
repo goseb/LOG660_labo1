@@ -39,7 +39,8 @@ public class LectureBD {
 	HashMap<String, Integer> lieuIds = new HashMap<String, Integer>();
 	HashMap<String, Integer> adresseIds = new HashMap<String, Integer>();
 	HashMap<Integer, Integer> personneIds = new HashMap<Integer, Integer>();
-	HashMap<Integer, Integer> forfaitIds = new HashMap<Integer, Integer>();
+	HashMap<String, Integer> forfaitIds = new HashMap<String, Integer>();
+	HashMap<String, Integer> scenaristeIds = new HashMap<String, Integer>();
 	
 	Connection connection;
 	
@@ -66,7 +67,7 @@ public class LectureBD {
    
    
    public void lecturePersonnes(String nomFichier) throws SQLException{   
-	   int count = 0;
+	  
       try {
          XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
          XmlPullParser parser = factory.newPullParser();
@@ -126,13 +127,7 @@ public class LectureBD {
                      photo = parser.getText();
                   else if (tag.equals("bio"))
                      bio = parser.getText();
-                  //test afficher les noms
-                  
-                /*  if (nom != null){
-                      count = count+1;
-                      System.out.println("nom: "+ nom + " anniversaire: "+anniversaire+ " lieu "+ lieu + " nombre: " +count) ;
-                   }
-               */
+              
                }              
             }
           
@@ -396,18 +391,62 @@ public class LectureBD {
    
    private void insertionDefaultValues() throws SQLException
    {
+	   if(connection == null){
+		   System.out.println("il n'y a pas de connection");
+	   }else{  
+	   
   	 // inserer les forfaits
+		   
+			 // inserer Canada
+		  	 PreparedStatement insertionForfait= connection.prepareStatement("INSERT INTO Forfait (nomPays) VALUES (?,?,?,?)", new String[]{"idForfait"});
+		  	 insertionForfait.setString(1,"Debutant");
+			   insertionForfait.setInt(2,5);
+			   insertionForfait.setInt(3,1);
+			   insertionForfait.setInt(4,10);
+			   insertionForfait.executeUpdate();
+		  	 ResultSet rs = insertionForfait.getGeneratedKeys();
+		  	 if (rs.next())
+		  	 {
+		  		 paysIds.put("D", rs.getInt(1));
+		  	 }
+		  	 
+		  	 insertionForfait.setString(1,"Intermediaire");
+			   insertionForfait.setInt(2,10);
+			   insertionForfait.setInt(3,5);
+			   insertionForfait.setInt(4,30);
+			   insertionForfait.executeUpdate();
+		  	 rs = insertionForfait.getGeneratedKeys();
+		  	 if (rs.next())
+		  	 {
+		  		 paysIds.put("I", rs.getInt(2));
+		  	 }
+	 
+		  	 insertionForfait.setString(1,"Avance");
+			   insertionForfait.setInt(2,15);
+			   insertionForfait.setInt(3,10);
+			   //on ne met rien car c'est null= illimité
+			   //insertionForfait.setInt(4,null);
+			   insertionForfait.executeUpdate();
+		  	 rs = insertionForfait.getGeneratedKeys();
+		  	 if (rs.next())
+		  	 {
+		  		 paysIds.put("A", rs.getInt(3));
+		  	 }
+		
+		 
   	 
-  	 // inserer Canada
-  	 PreparedStatement insertionPays = connection.prepareStatement("INSERT INTO Pays (nomPays) VALUES (?)", new String[]{"idPays"});
-  	 insertionPays.setString(1, "Canada");
-  	 ResultSet rs = insertionPays.getGeneratedKeys();
-  	 if (rs.next())
-  	 {
-  		 paysIds.put("Canada", rs.getInt(1));
-  	 }
+	  	 // inserer Canada
+	  	 PreparedStatement insertionPays = connection.prepareStatement("INSERT INTO Pays (nomPays) VALUES (?)", new String[]{"idPays"});
+	  	 insertionPays.setString(1, "Canada");
+	  	 insertionPays.executeUpdate();
+	  	 rs = insertionPays.getGeneratedKeys();
+		  	 if (rs.next())
+		  	 {
+		  		 paysIds.put("Canada", rs.getInt(4));
+		  	 }
    }
    
+   }
    private void insertionPersonne(int id, String nom, String anniv, String lieu, String photo, String bio) throws SQLException {      
       // On insere la personne dans la BD
 	   
@@ -428,9 +467,9 @@ public class LectureBD {
 		   String espace = " ";
 		   String[] tokens = nom.split(espace);
 		   prenom = tokens[0];
-		   for (int i=1; i<tokens.length; i++){
-		   nom = nom + tokens[i]+" ";
-		   }
+			   for (int i=1; i<tokens.length; i++){
+			   nom = nom + tokens[i]+" ";
+			   }
 		   String virgule= ",";
 		   String[] tokensLieu = lieu.split(virgule);
 		   ville = tokensLieu[0];
@@ -446,42 +485,42 @@ public class LectureBD {
 		   insertionPersonne.setString(3, anniv);
 		   insertionPersonne.executeUpdate();
 		   rs = insertionPersonne.getGeneratedKeys();
-		   if(rs.next()) {
-			   idPersonne = rs.getInt(1);
-			   personneIds.put(id, idPersonne); 
-		   }
+			   if(rs.next()) {
+				   idPersonne = rs.getInt(1);
+				   personneIds.put(id, idPersonne); 
+			   }
 		   
 		   // Insertion pays
-		   if (paysIds.containsKey(pays))
-		  	 idPays = paysIds.get(pays);
-		   else
-		   {
-		  	 PreparedStatement insertionPays = connection.prepareStatement("INSERT INTO Pays (nomPays) VALUES (?)", new String[]{"idPays"});
-		  	 insertionPays.setString(1, pays);
-		  	 rs = insertionPays.getGeneratedKeys();
-		  	 if (rs.next())
-		  	 {
-		  		 idPays = rs.getInt(1);
-		  		 paysIds.put(pays, idPays);
-		  	 }
-		   }
-		   
-		   if (lieuIds.containsKey(ville + province + idPays))
-		  	 idLieu = lieuIds.get(ville + province + idPays);
-		   else
-		   {
-			   //insertion dans la table Lieu, retour de idLieu
-			   PreparedStatement insertionLieu = 
-					   connection.prepareStatement("INSERT INTO Lieu(ville, province, idPays) VALUES(?,?,?)", new String[]{"idLieu"} );
-			   insertionLieu.setString(1, ville);
-			   insertionLieu.setString(2, province);
-			   insertionLieu.setInt(3, idPays);
-			   insertionLieu.executeUpdate();
-			   rs = insertionLieu.getGeneratedKeys();
-			   if(rs.next()){
-				   idLieu= rs.getInt(1);
+			   if (paysIds.containsKey(pays))
+			  	 idPays = paysIds.get(pays);
+			   else
+			   {
+			  	 PreparedStatement insertionPays = connection.prepareStatement("INSERT INTO Pays (nomPays) VALUES (?)", new String[]{"idPays"});
+			  	 insertionPays.setString(1, pays);
+			  	 rs = insertionPays.getGeneratedKeys();
+			  	 if (rs.next())
+			  	 {
+			  		 idPays = rs.getInt(1);
+			  		 paysIds.put(pays, idPays);
+			  	 }
 			   }
-		   }
+		   
+			   if (lieuIds.containsKey(ville + province + idPays))
+			  	 idLieu = lieuIds.get(ville + province + idPays);
+			   else
+			   {
+				   //insertion dans la table Lieu, retour de idLieu
+				   PreparedStatement insertionLieu = 
+						   connection.prepareStatement("INSERT INTO Lieu(ville, province, idPays) VALUES(?,?,?)", new String[]{"idLieu"} );
+				   insertionLieu.setString(1, ville);
+				   insertionLieu.setString(2, province);
+				   insertionLieu.setInt(3, idPays);
+				   insertionLieu.executeUpdate();
+				   rs = insertionLieu.getGeneratedKeys();
+				   if(rs.next()){
+					   idLieu= rs.getInt(1);
+				   }
+			   }
 		   //insertion dans la table Celebrite, retour de celebrite
 		   PreparedStatement insertionCelebrite = 
 				   connection.prepareStatement("INSERT INTO Celebrite("
@@ -501,85 +540,100 @@ public class LectureBD {
                            ArrayList<String> annonces) throws SQLException {         
       // On le film dans la BD
 	   
-		/*
-		 * ***test***
-	   for (int i =0; i<roles.size();i++){
-	   System.out.println("role : "+ roles.get(i).getRoleId() +"compteur : " + count++ );
-	   }
-	   */
+	
 	   
 	   ResultSet rs;
 	   int idFilm = 0;
 	   int idPays = 0;
+	   int idScenariste = 0;
 	   if(connection == null){
 		   System.out.println("il n'y a pas de connection");
-	   }else{
-	   
-		   //insertion dans la table personne, retour de idPersonne
-		   PreparedStatement insertionFilm = 
-				   connection.prepareStatement("INSERT INTO Film("
-				   		+ "titre, anneeSortie, duree, resumeScenario) VALUES((?,?,?,?)", new String[]{"idFilm"} );
-		   insertionFilm.setString(1, titre);
-		   insertionFilm.setInt(2, annee);
-		   insertionFilm.setInt(3, duree);
-		   insertionFilm.setString(4, resume);
-		   insertionFilm.executeUpdate();
-		   rs = insertionFilm.getGeneratedKeys();
-		   if(rs.next()){
-			   idFilm = rs.getInt(1);
-		   }
+		   }else{
 		   
-		   //*************A implementer: créer la table Genre pour référence 
-		   //insertion dans la table personne, retour de idPersonne
-		   //changer le ID genre devrait devenir un type... action, aventure etc
-		   
-		   for(int i=0; i<genres.size();i++){
-		   PreparedStatement insertionGenreFilm = 
-				   connection.prepareStatement("INSERT INTO GenreFilm("
-				   		+ "idFilm, idGenre) VALUES((?,?)" );
-		   insertionGenreFilm.setInt(1, idFilm);
-		   insertionGenreFilm.setString(2, genres.get(i));
-		  
-		   insertionGenreFilm.executeUpdate();
-		   }
-		   
-		   for(int i=0; i<pays.size();i++){
-		  	 if (paysIds.containsKey(pays.get(i)))
-		  		 idPays = paysIds.get(pays.get(i));
-		  	 else
-		  	 {
-		    	 PreparedStatement insertionPays = connection.prepareStatement("INSERT INTO Pays (nomPays) VALUES (?)", new String[]{"idPays"});
-		    	 insertionPays.setString(1, pays.get(i));
-		    	 rs = insertionPays.getGeneratedKeys();
-		    	 if (rs.next())
-		    	 {
-		    		 idPays = rs.getInt(1);
-		    		 paysIds.put(pays.get(i), idPays);
-		    	 }
-		  	 }
-		  	 
-			   PreparedStatement insertionPaysFilm = 
-					   connection.prepareStatement("INSERT INTO PaysFilm("
-					   		+ "idFilm, idPays) VALUES((?,?)" );
-			   insertionPaysFilm.setInt(1, idFilm);
-			   insertionPaysFilm.setInt(2, idPays);
+			   //insertion dans la table personne, retour de idPersonne
+			   PreparedStatement insertionFilm = 
+					   connection.prepareStatement("INSERT INTO Film("
+					   		+ "titre, anneeSortie, duree, resumeScenario) VALUES((?,?,?,?)", new String[]{"idFilm"} );
+			   insertionFilm.setString(1, titre);
+			   insertionFilm.setInt(2, annee);
+			   insertionFilm.setInt(3, duree);
+			   insertionFilm.setString(4, resume);
+			   insertionFilm.executeUpdate();
+			   rs = insertionFilm.getGeneratedKeys();
+			   if(rs.next()){
+				   idFilm = rs.getInt(1);
+			   }
+			   
+			   //*************A implementer: créer la table Genre pour référence 
+			   //insertion dans la table personne, retour de idPersonne
+			   //changer le ID genre devrait devenir un type... action, aventure etc
+			   
+			   for(int i=0; i<genres.size();i++){
+			   PreparedStatement insertionGenreFilm = 
+					   connection.prepareStatement("INSERT INTO GenreFilm("
+					   		+ "idFilm, idGenre) VALUES((?,?)" );
+			   insertionGenreFilm.setInt(1, idFilm);
+			   insertionGenreFilm.setString(2, genres.get(i));
 			  
-			   insertionPaysFilm.executeUpdate();
+			   insertionGenreFilm.executeUpdate();
+			   }
+			   
+			   for(int i=0; i<pays.size();i++){
+			  	 if (paysIds.containsKey(pays.get(i)))
+			  		 idPays = paysIds.get(pays.get(i));
+			  	 else
+			  	 {
+			    	 PreparedStatement insertionPays = connection.prepareStatement("INSERT INTO Pays (nomPays) VALUES (?)", new String[]{"idPays"});
+			    	 insertionPays.setString(1, pays.get(i));
+			    	 rs = insertionPays.getGeneratedKeys();
+			    	 if (rs.next())
+			    	 {
+			    		 idPays = rs.getInt(1);
+			    		 paysIds.put(pays.get(i), idPays);
+			    	 }
+			  	 }
+			  	 
+				   PreparedStatement insertionPaysFilm = 
+						   connection.prepareStatement("INSERT INTO PaysFilm("
+						   		+ "idFilm, idPays) VALUES((?,?)" );
+				   insertionPaysFilm.setInt(1, idFilm);
+				   insertionPaysFilm.setInt(2, idPays);
+				  
+				   insertionPaysFilm.executeUpdate();
+			   }
+			   
+			   // Insert scenarist avant scenariste film
+			   
+			 
+			   for(int i=0; i<scenaristes.size();i++){
+				  	 if (scenaristeIds.containsKey(scenaristes.get(i)))
+				  		 idScenariste = scenaristeIds.get(scenaristes.get(i));
+				  	 else
+				  	 {
+				  	
+				  	 // pour les scenariste nom et prenom sont mis dans nom car il y a des noms composés
+				  		 // avec - et sans ... puis des prénoms composé
+				    	 PreparedStatement insertionScenariste = connection.prepareStatement(
+				    			 "INSERT INTO Scenariste (nom) VALUES (?)", new String[]{"idScenariste"});
+				    	 insertionScenariste.setString(1, pays.get(i));
+				    	 rs = insertionScenariste.getGeneratedKeys();
+				    	 if (rs.next())
+				    	 {
+				    		 idScenariste = rs.getInt(1);
+				    		 scenaristeIds.put(scenaristes.get(i), idScenariste);
+				    	 }
+				  	 }
+				  	 
+					   PreparedStatement insertionScenaristeFilm = 
+							   connection.prepareStatement("INSERT INTO ScenaristeFilm("
+							   		+ "idFilm, idScenariste) VALUES((?,?)" );
+					   insertionScenaristeFilm.setInt(1, idFilm);
+					   insertionScenaristeFilm.setInt(2, idScenariste);
+					  
+					   insertionScenaristeFilm.executeUpdate();
+				  
+			   }
 		   }
-		   
-		   // Insert scenarist avant scenariste film
-		   
-		   /*
-		   for(int i=0; i<scenaristes.size();i++){
-			   PreparedStatement insertionScenaristeFilm = 
-					   connection.prepareStatement("INSERT INTO ScenaristeFilm("
-					   		+ "idFilm, nom ) VALUES((?,?)" );
-			   insertionScenaristeFilm.setInt(1, idFilm);
-			   insertionScenaristeFilm.setString(2, scenaristes.get(i));
-			  
-			   insertionScenaristeFilm.executeUpdate();
-		   }*/
-	   }
    }
    
   
@@ -594,6 +648,7 @@ public class LectureBD {
 	   int idLieu = 0;
 	   int idPays = paysIds.get("Canada");
 	   int idPersonne = 0;
+	
 	   
 	   String noCivique = "";
 	   String rue = "";
@@ -601,92 +656,93 @@ public class LectureBD {
 	   String espace = " ";
 	   String[] tokens = adresse.split(espace);
 	   noCivique = tokens[0];
-	   for (int i=1; i<tokens.length; i++){
-	  	 rue = rue +tokens[i]+" ";
-	   }
+		   for (int i=1; i<tokens.length; i++){
+		  	 rue = rue +tokens[i]+" ";
+		   }
 	   
 	   // System.out.println("id : "+ id +"conteur : " + count++ );
-	   if(connection == null){
-		   System.out.println("il n'y a pas de connection");
-	   }else{
-		   //insertion dans la table personne, retour de idPersonne
-		   PreparedStatement insertionPersonne = 
-				   connection.prepareStatement("INSERT INTO Personne("
-				   		+ "nom, prenom,dateNaissance) VALUES((?,?,?)", new String[]{"idPersonne"} );
-		   insertionPersonne.setString(1, nomFamille);
-		   insertionPersonne.setString(2, prenom);
-		   insertionPersonne.setString(3, anniv);
-		   insertionPersonne.executeUpdate();
-		   rs = insertionPersonne.getGeneratedKeys();
-		   if(rs.next()){
-		  	 idPersonne = rs.getInt(1);
-		   }
-		   
-		   if (lieuIds.containsKey(ville + province + idPays))
-		  	 idLieu = lieuIds.get(ville + province + idPays);  
-		   else
-		   {
-			   //insertion dans la table Lieu, retour de idLieu
-			   PreparedStatement insertionLieu = 
-					   connection.prepareStatement("INSERT INTO Lieu(ville, province, idPays) VALUES((?,?,?)", new String[]{"idLieu"} );
-			   insertionLieu.setString(1, ville);
-			   insertionLieu.setString(2, province);
-			   insertionLieu.setInt(3, idPays);
-			   insertionLieu.executeUpdate();
-			   rs = insertionLieu.getGeneratedKeys();
+		   if(connection == null){
+			   System.out.println("il n'y a pas de connection");
+			   }else{
+			   //insertion dans la table personne, retour de idPersonne
+			   PreparedStatement insertionPersonne = 
+					   connection.prepareStatement("INSERT INTO Personne("
+					   		+ "nom, prenom,dateNaissance) VALUES((?,?,?)", new String[]{"idPersonne"} );
+			   insertionPersonne.setString(1, nomFamille);
+			   insertionPersonne.setString(2, prenom);
+			   insertionPersonne.setString(3, anniv);
+			   insertionPersonne.executeUpdate();
+			   rs = insertionPersonne.getGeneratedKeys();
 			   if(rs.next()){
-				   idLieu= rs.getInt(1);
-				   lieuIds.put(ville + province + idPays, idLieu);
+			  	 idPersonne = rs.getInt(1);
 			   }
-		   }
+			   
+			   if (lieuIds.containsKey(ville + province + idPays))
+			  	 idLieu = lieuIds.get(ville + province + idPays);  
+			   else
+			   {
+				   //insertion dans la table Lieu, retour de idLieu
+				   PreparedStatement insertionLieu = 
+						   connection.prepareStatement("INSERT INTO Lieu(ville, province, idPays) VALUES((?,?,?)", new String[]{"idLieu"} );
+				   insertionLieu.setString(1, ville);
+				   insertionLieu.setString(2, province);
+				   insertionLieu.setInt(3, idPays);
+				   insertionLieu.executeUpdate();
+				   rs = insertionLieu.getGeneratedKeys();
+				   if(rs.next()){
+					   idLieu= rs.getInt(1);
+					   lieuIds.put(ville + province + idPays, idLieu);
+				   }
+			   }
+				 
+			   if (adresseIds.containsKey(noCivique + rue + codePostal + idLieu))
+			  	 idAdresse = adresseIds.get(noCivique + rue + codePostal + idLieu);
+			   else
+			   {
+				   //insertion dans la table adresse, retour de idAdresse
+				   PreparedStatement insertionAdresse = 
+						   connection.prepareStatement("INSERT INTO Adresse(noCivique, rue, codePostal, idLieu) VALUES((?,?,?,?)", new String[]{"idAdresse"} );
+				   insertionAdresse.setString(1, noCivique);
+				   insertionAdresse.setString(2, rue);
+				   insertionAdresse.setString(3, codePostal);
+				   insertionAdresse.setInt(4, idLieu);
+				   insertionAdresse.executeUpdate();
+				   rs = insertionAdresse.getGeneratedKeys();
+				   if(rs.next()){
+					   idAdresse= rs.getInt(1);
+					   adresseIds.put(noCivique + rue + codePostal + idLieu, idAdresse);
+				   }
+			   }
+			   
+			   // insertion dans la table Utilisateur, retour idUtilisateur
+			   PreparedStatement insertionUtilisateur = 
+					   connection.prepareStatement("INSERT INTO Utilisateur(idPersonne, motDePasse, courriel, noTelephone, idAdresse) VALUES((?,?,?,?,?)");
+			   insertionUtilisateur.setInt(1, idPersonne);
+			   insertionUtilisateur.setString(2, motDePasse);
+			   insertionUtilisateur.setString(3, courriel);
+			   insertionUtilisateur.setString(4, tel);
+			   insertionUtilisateur.setInt(5, idAdresse);
+			   insertionUtilisateur.executeUpdate();
+	
+			   // insertion dans la table Carte de credit
+			   PreparedStatement insertionCarteCredit = 
+					   connection.prepareStatement("INSERT INTO CarteCredit(numero,idPersonne, type, moisExpiration, anneeExpiration) VALUES((?,?,?,?,?)" );
+			   insertionCarteCredit.setString(1, noCarte);
+			   insertionCarteCredit.setInt(2, idPersonne);
+			   insertionCarteCredit.setString(3, carte);
+			   insertionCarteCredit.setInt(4, expMois);
+			   insertionCarteCredit.setInt(5, expAnnee);
+			   insertionCarteCredit.executeUpdate();
+			  
+			   
+			   	// insertion dans la table Client
 			 
-		   if (adresseIds.containsKey(noCivique + rue + codePostal + idLieu))
-		  	 idAdresse = adresseIds.get(noCivique + rue + codePostal + idLieu);
-		   else
-		   {
-			   //insertion dans la table adresse, retour de idAdresse
-			   PreparedStatement insertionAdresse = 
-					   connection.prepareStatement("INSERT INTO Adresse(noCivique, rue, codePostal, idLieu) VALUES((?,?,?,?)", new String[]{"idAdresse"} );
-			   insertionAdresse.setString(1, noCivique);
-			   insertionAdresse.setString(2, rue);
-			   insertionAdresse.setString(3, codePostal);
-			   insertionAdresse.setInt(4, idLieu);
-			   insertionAdresse.executeUpdate();
-			   rs = insertionAdresse.getGeneratedKeys();
-			   if(rs.next()){
-				   idAdresse= rs.getInt(1);
-				   adresseIds.put(noCivique + rue + codePostal + idLieu, idAdresse);
-			   }
+					PreparedStatement insertionClient = 
+					connection.prepareStatement("INSERT INTO Client(idPersonne, idForfait) VALUES((?,?)");
+					insertionClient.setInt(1, idPersonne);
+					insertionClient.setInt(2, forfaitIds.get(forfait));
+					insertionClient.executeUpdate();
 		   }
-		   
-		   // insertion dans la table Utilisateur, retour idUtilisateur
-		   PreparedStatement insertionUtilisateur = 
-				   connection.prepareStatement("INSERT INTO Utilisateur(idPersonne, motDePasse, courriel, noTelephone, idAdresse) VALUES((?,?,?,?,?)");
-		   insertionUtilisateur.setInt(1, idPersonne);
-		   insertionUtilisateur.setString(2, motDePasse);
-		   insertionUtilisateur.setString(3, courriel);
-		   insertionUtilisateur.setString(4, tel);
-		   insertionUtilisateur.setInt(5, idAdresse);
-		   insertionUtilisateur.executeUpdate();
-
-		   // insertion dans la table Carte de credit
-		   PreparedStatement insertionCarteCredit = 
-				   connection.prepareStatement("INSERT INTO CarteCredit(numero,idPersonne, type, moisExpiration, anneeExpiration) VALUES((?,?,?,?,?)" );
-		   insertionCarteCredit.setString(1, noCarte);
-		   insertionCarteCredit.setInt(2, idPersonne);
-		   insertionCarteCredit.setString(3, carte);
-		   insertionCarteCredit.setInt(4, expMois);
-		   insertionCarteCredit.setInt(5, expAnnee);
-		   insertionCarteCredit.executeUpdate();
-		  
-		   
-		   	// insertion dans la table Client
-				PreparedStatement insertionClient = 
-				connection.prepareStatement("INSERT INTO Client(idPersonne, idForfait) VALUES((?,?)");
-				insertionClient.setInt(1, idPersonne);
-				insertionClient.setInt(2, forfaitIds.get(forfait));
-				insertionClient.executeUpdate();
-	   }
 }
    
    
@@ -699,7 +755,6 @@ public class LectureBD {
 		//connection a la BD
 //		uneConnection = DriverManager.getConnection(CONNECTION_BD);
 	
-
 	   
    }
 
